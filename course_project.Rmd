@@ -1,0 +1,70 @@
+---
+title: "project_practical machine learning"
+author: "Sung-en Chien"
+date: "2016.3.24"
+output: html_document
+---
+## background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it.
+
+The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+
+## environment settings
+```{r, echo=TRUE, results='asis', cache=TRUE}
+# language setting
+Sys.setlocale("LC_TIME", "en_US.UTF-8")
+setwd("~/R/practical machine learing")
+# set libraries here
+library(caret);
+
+# import data
+training <- read.csv("pml-training.csv", na.strings = c("NA", ""))
+testing <- read.csv("pml-testing.csv", na.strings = c("NA", ""))
+
+#
+set.seed(1234) 
+```
+
+## Remove NA data
+Since the training data set contains only NA values,  which simply are not predictive. So remove predictors containg NA data from the training and testing dataset first. Then also remove data which are specific to subject imformation.
+```{r, echo=TRUE, results='asis'}
+# remove varibles containg NA values
+training <- training[, colSums(is.na(training)) == 0]
+testing <- testing[, colSums(is.na(testing)) == 0]
+
+# remove varibles specific to subject information
+training=training[,-c(1:7)]
+testing=testing[,-c(1:7)]
+```
+
+## data partition
+one of the requirement for this course project is to perform cross validation. So randomly sample 70% data out of the training data for training, and the other 30% for evaluation.
+```{r, echo=TRUE, results='asis'}
+inTrain <- createDataPartition(training$classe, p = 0.7, list = FALSE)
+subtrainingData <- training[inTrain, ]
+validationData <- training[-inTrain, ]
+```
+
+## using Random forests to build the model for prediction
+
+```{r, echo=TRUE, results='asis'}
+rfControl <- trainControl(method = "cv", number = 4)
+rfFit <- train(classe ~ ., data = subtrainingData, method = "rf", trControl = rfControl)
+# prediction with valid dataset
+rfPredict <- predict(rfFit, validationData)
+# show prediction results
+rfConfusionMatrix <- confusionMatrix(validationData$classe, rfPredict) 
+rfConfusionMatrix
+# check accuracy
+resultAccuracy <- rfConfusionMatrix$overall
+resultAccuracy
+```
+
+Accuracy for validdation dataset is 0.994. Should be good enough for validation. For next step, apply the model for the test dataset.
+
+```{r, echo=TRUE, results='asis', cache=TRUE}
+testPredict <- predict(rfFit, newdata = testing)
+# show the prediction
+testPredict 
+```
+
